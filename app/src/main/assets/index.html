@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kurumsal NFC PDKS</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            --glass-bg: rgba(255, 255, 255, 0.94);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+        body { background: var(--bg-gradient); min-height: 100vh; color: var(--text-main); padding: 14px; transition: background 0.3s ease; }
+        
+        body.flash-success { background: linear-gradient(135deg, #064e3b 0%, #047857 100%) !important; }
+        body.flash-warning { background: linear-gradient(135deg, #78350f 0%, #b45309 100%) !important; }
+        body.flash-error { background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%) !important; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+        .glass { background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: var(--radius); box-shadow: 0 10px 25px rgba(0,0,0,0.25); padding: 18px; margin-bottom: 16px; }
+        
+        .flex { display: flex; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+
+        label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; letter-spacing: 0.4px; }
+        input, select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; outline: none; transition: 0.2s; background: #fff; }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
+        
+        .btn { padding: 10px 14px; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-warning { background: var(--warning); color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-ghost { background: rgba(255,255,255,0.75); color: var(--text-main); border: 1px solid #cbd5e1; }
+        .btn-ghost.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: #e0e7ff; color: #3730a3; }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+        th { padding: 10px; border-bottom: 2px solid #e2e8f0; color: var(--text-muted); font-size: 11px; text-transform: uppercase; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+
+        .stat-card { background: #fff; padding: 14px; border-radius: 12px; border-left: 4px solid var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .stat-val { font-size: 22px; font-weight: 800; margin-top: 2px; }
+
+        .nfc-pulse { animation: pulse 2s infinite; border: 2px dashed var(--primary); background: #eef2ff; padding: 14px; border-radius: 12px; text-align: center; margin-bottom: 14px; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+        }
+
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
+        .modal-content { background: #fff; border-radius: 16px; max-width: 420px; width: 100%; padding: 20px; }
+
+        .hidden { display: none !important; }
+        .mono { font-family: monospace; }
+        .mt-2 { margin-top: 8px; }
+        .mt-4 { margin-top: 14px; }
+        .mb-4 { margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 1. GİRİŞ EKRANI -->
+    <div id="login-screen" style="max-width: 400px; margin: 50px auto;">
+        <div class="glass">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="width: 54px; height: 54px; background: var(--primary); color: #fff; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; margin-bottom: 10px;">P</div>
+                <h2 style="font-size: 20px;">NFC PDKS Yönetim Girişi</h2>
+                <p style="font-size: 12px; color: var(--text-muted);">Çevrimdışı Mobil Personel Takip Sistemi</p>
+            </div>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="login-user" required placeholder="admin">
+                </div>
+                <div class="mb-4">
+                    <label>Parola</label>
+                    <input type="password" id="login-pass" required placeholder="••••••">
+                </div>
+                <div id="login-error" style="color: var(--danger); font-size: 12px; font-weight: 600; margin-bottom: 12px; text-align: center;"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">Sisteme Giriş Yap</button>
+            </form>
+            <div style="text-align: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 12px; color: var(--text-muted);">
+                Varsayılan: <strong>admin</strong> / <strong>admin123</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. ANA PANEL -->
+    <div id="main-app" class="hidden">
+        <header class="glass flex-between">
+            <div>
+                <h1 style="font-size: 17px; font-weight: 800;">📡 NFC PDKS Kontrol Paneli</h1>
+                <div class="flex" style="gap: 8px; align-items: center; margin-top: 4px;">
+                    <span id="live-clock" style="font-size: 12px; color: var(--text-muted);"></span>
+                    <span id="nfc-status-badge" class="badge badge-info">NFC Hazır</span>
+                </div>
+            </div>
+            <div class="flex" style="gap: 6px; flex-wrap: wrap;">
+                <button class="btn btn-ghost active" onclick="switchTab('kiosk', this)">🪪 Kiosk (Okut)</button>
+                <button class="btn btn-ghost" onclick="switchTab('personnel', this)">👥 Personel</button>
+                <button class="btn btn-ghost" onclick="switchTab('leaves', this)">🌴 İzin & Tatil</button>
+                <button class="btn btn-ghost" onclick="switchTab('reports', this)">📊 Raporlar</button>
+                <button class="btn btn-ghost" onclick="switchTab('settings', this)">⚙️ Ayarlar</button>
+                <button class="btn btn-danger" onclick="logout()">Çıkış</button>
+            </div>
+        </header>
+
+        <!-- CANLI İSTATİSTİKLER -->
+        <div class="grid-4 mb-4">
+            <div class="stat-card" style="border-color: var(--primary);">
+                <label>Toplam Personel</label>
+                <div class="stat-val" id="stat-total">0</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--success);">
+                <label>🟢 İçeride</label>
+                <div class="stat-val" id="stat-inside" style="color: var(--success);">0</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--warning);">
+                <label>🌴 İzinli / Raporlu</label>
+                <div class="stat-val" id="stat-leave" style="color: var(--warning);">0</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--danger);">
+                <label>🔴 Gelmeyen</label>
+                <div class="stat-val" id="stat-absent" style="color: var(--danger);">0</div>
+            </div>
+        </div>
+
+        <!-- SEKME 1: KIOSK -->
+        <div id="tab-kiosk" class="tab-content grid-2">
+            <div class="glass">
+                <h3 class="mb-4">📡 NFC Kart Okutma Noktası</h3>
+                <div class="nfc-pulse">
+                    <div style="font-size: 24px; margin-bottom: 4px;">📲</div>
+                    <strong style="font-size: 14px; color: var(--primary);">Kartı Telefonun Arkasına Yaklaştırın</strong>
+                    <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">13.56 MHz NFC çipli kartlar otomatik okunur ve giriş/çıkış işlenir.</p>
+                </div>
+                
+                <form id="scan-form" class="flex" style="gap: 8px;">
+                    <input type="text" id="scan-input" class="mono" placeholder="Manuel Kart ID (Örn: CARD-001)" required>
+                    <button type="submit" class="btn btn-success">Okut</button>
+                </form>
+
+                <div id="scan-feedback" class="hidden mt-4" style="padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 600;"></div>
+
+                <div class="mt-4">
+                    <label>Hızlı Test Kartları:</label>
+                    <div id="quick-cards" class="flex" style="gap: 6px; flex-wrap: wrap; margin-top: 6px;"></div>
+                </div>
+
+                <div class="mt-4" style="padding-top: 12px; border-top: 1px solid #e2e8f0;">
+                    <label>🟢 Şu An İşyerinde Olanlar:</label>
+                    <div id="inside-list" class="flex" style="gap: 6px; flex-wrap: wrap; margin-top: 6px;"></div>
+                </div>
+            </div>
+
+            <div class="glass">
+                <div class="flex-between mb-4">
+                    <h3>📋 Bugünün Hareketleri</h3>
+                    <span id="today-holiday-badge"></span>
+                </div>
+                <div class="table-wrap" style="max-height: 360px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Personel</th>
+                                <th>İşlem</th>
+                                <th>Saat</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="today-logs-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEKME 2: PERSONEL YÖNETİMİ -->
+        <div id="tab-personnel" class="tab-content hidden">
+            <div class="glass">
+                <h3 class="mb-4" id="personnel-form-title">➕ Yeni Personel & NFC Kart Tanımla</h3>
+                <form id="personnel-form" class="grid-4">
+                    <input type="hidden" id="p-id">
+                    <div>
+                        <label>Ad Soyad</label>
+                        <input type="text" id="p-name" required>
+                    </div>
+                    <div>
+                        <label>NFC Kart UID / No</label>
+                        <div class="flex" style="gap: 4px;">
+                            <input type="text" id="p-card" class="mono" placeholder="Kartı okutun..." required>
+                            <button type="button" id="btn-nfc-capture" class="btn btn-warning btn-sm" onclick="toggleNfcCaptureMode()" title="Kartı telefonun arkasına yaklaştırarak UID yakala">📡 Tara</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Özel Durum</label>
+                        <select id="p-status">
+                            <option value="Normal">Normal Mesai</option>
+                            <option value="Engelli">Engelli (Özel Mesai)</option>
+                            <option value="Hastalık/Sağlık">Hastalık/Sağlık (Özel Mesai)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Özel Giriş Saati</label>
+                        <input type="time" id="p-custom-start">
+                    </div>
+                    <div>
+                        <label>Özel Çıkış Saati</label>
+                        <input type="time" id="p-custom-end">
+                    </div>
+                    <div style="display: flex; align-items: flex-end; gap: 6px;">
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                        <button type="button" class="btn btn-ghost hidden" id="p-cancel-btn" onclick="resetPersonnelForm()">İptal</button>
+                    </div>
+                </form>
+                <div id="nfc-capture-hint" class="hidden mt-2 badge badge-warning">📡 Kart Tarama Modu Aktif: Personel kartını telefonun arkasına yaklaştırın...</div>
+            </div>
+
+            <div class="glass">
+                <h3 class="mb-4">👥 Kayıtlı Personeller</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ad Soyad</th>
+                                <th>Kart UID</th>
+                                <th>Durum</th>
+                                <th>Mesai</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personnel-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEKME 3: İZİN VE TATİL -->
+        <div id="tab-leaves" class="tab-content hidden grid-2">
+            <div class="glass">
+                <h3 class="mb-4">🌴 Personel İzin / Rapor Tanımla</h3>
+                <form id="leave-form">
+                    <div class="mb-4">
+                        <label>Personel Seçin</label>
+                        <select id="leave-personnel" required></select>
+                    </div>
+                    <div class="grid-2 mb-4">
+                        <div>
+                            <label>Başlangıç</label>
+                            <input type="date" id="leave-start" required>
+                        </div>
+                        <div>
+                            <label>Bitiş</label>
+                            <input type="date" id="leave-end" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label>İzin Türü</label>
+                        <select id="leave-type">
+                            <option value="Yıllık İzin">Yıllık İzin</option>
+                            <option value="Sağlık Raporu">Sağlık Raporu</option>
+                            <option value="Mazeret İzni">Mazeret İzni</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">İzin Kaydet</button>
+                </form>
+
+                <div class="table-wrap mt-4">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Personel</th>
+                                <th>Tarih</th>
+                                <th>Tür</th>
+                                <th>Sil</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaves-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="glass">
+                <h3 class="mb-4">📅 Resmi Tatil & Hafta Sonu Kuralları</h3>
+                <div class="mb-4" style="background: #f8fafc; padding: 12px; border-radius: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; font-size: 13px; color: var(--text-main);">
+                        <input type="checkbox" id="rule-sunday" style="width: auto;" onchange="saveSettings()"> Pazar Günleri Tatil Sayılsın
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; font-size: 13px; color: var(--text-main); margin-top: 8px;">
+                        <input type="checkbox" id="rule-saturday" style="width: auto;" onchange="saveSettings()"> Cumartesi Günleri Tatil Sayılsın
+                    </label>
+                </div>
+
+                <form id="holiday-form" class="flex" style="gap: 6px; margin-bottom: 14px;">
+                    <input type="date" id="holiday-date" required>
+                    <input type="text" id="holiday-name" placeholder="Tatil Adı" required>
+                    <button type="submit" class="btn btn-primary">Ekle</button>
+                </form>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Açıklama</th>
+                                <th>Sil</th>
+                            </tr>
+                        </thead>
+                        <tbody id="holidays-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEKME 4: RAPORLAR -->
+        <div id="tab-reports" class="tab-content hidden">
+            <div class="glass">
+                <div class="flex-between mb-4">
+                    <h3>📊 Tarih Aralıklı Rapor & Eksik Çıkış Düzeltme</h3>
+                    <button class="btn btn-success" onclick="exportToCSV()">📥 Excel (CSV) İndir</button>
+                </div>
+
+                <div class="grid-4 mb-4">
+                    <div>
+                        <label>Başlangıç Tarihi</label>
+                        <input type="date" id="rep-start">
+                    </div>
+                    <div>
+                        <label>Bitiş Tarihi</label>
+                        <input type="date" id="rep-end">
+                    </div>
+                    <div>
+                        <label>Personel</label>
+                        <select id="rep-person">
+                            <option value="ALL">Tüm Personeller</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-primary" style="width: 100%;" onclick="renderReports()">Filtrele</button>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Personel</th>
+                                <th>İşlem</th>
+                                <th>Saat</th>
+                                <th>Durum</th>
+                                <th>Müdahale</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reports-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEKME 5: AYARLAR & YEDEKLEME -->
+        <div id="tab-settings" class="tab-content hidden grid-2">
+            <div class="glass">
+                <h3 class="mb-4">⚙️ Mesai, Tolerans & Yönetici Ayarları</h3>
+                <form id="settings-form">
+                    <div class="grid-2 mb-4">
+                        <div>
+                            <label>Mesai Başlangıç</label>
+                            <input type="time" id="set-start" required>
+                        </div>
+                        <div>
+                            <label>Mesai Bitiş</label>
+                            <input type="time" id="set-end" required>
+                        </div>
+                    </div>
+                    <div class="grid-2 mb-4">
+                        <div>
+                            <label>Geç Kalma Toleransı (Dk)</label>
+                            <input type="number" id="set-late-tol" min="0" required>
+                        </div>
+                        <div>
+                            <label>Erken Çıkış Toleransı (Dk)</label>
+                            <input type="number" id="set-early-tol" min="0" required>
+                        </div>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 14px 0;">
+                    <div class="grid-2 mb-4">
+                        <div>
+                            <label>Yönetici Kullanıcı Adı</label>
+                            <input type="text" id="set-admin-user" required>
+                        </div>
+                        <div>
+                            <label>Yeni Parola</label>
+                            <input type="text" id="set-admin-pass" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Ayarları Kaydet</button>
+                </form>
+            </div>
+
+            <div class="glass">
+                <h3 class="mb-4">💾 Veri Yedekleme & Geri Yükleme</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                    Tüm kayıtlar cihaz hafızasında tutulur. Verilerinizi JSON formatında yedekleyebilir veya başka bir cihazdan geri yükleyebilirsiniz.
+                </p>
+                <div class="mb-4">
+                    <button class="btn btn-success" onclick="exportJSON()">📤 Tüm Verileri Yedekle (.json)</button>
+                </div>
+                <div style="background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                    <label>📥 Yedekten Geri Yükle (.json)</label>
+                    <input type="file" id="import-json-file" accept=".json" class="mt-2">
+                    <button class="btn btn-warning mt-2" onclick="importJSON()">Seçili Yedeği Yükle</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DÜZENLEME MODALI -->
+    <div id="edit-log-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <h3 class="mb-4">✏️ Kayıt Düzenle</h3>
+            <form id="edit-log-form">
+                <input type="hidden" id="edit-log-id">
+                <div class="mb-4">
+                    <label>Personel</label>
+                    <input type="text" id="edit-log-person" disabled>
+                </div>
+                <div class="mb-4">
+                    <label>İşlem Türü</label>
+                    <select id="edit-log-type">
+                        <option value="IN">Giriş (IN)</option>
+                        <option value="OUT">Çıkış (OUT)</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label>Saat</label>
+                    <input type="time" id="edit-log-time" required>
+                </div>
+                <div class="mb-4">
+                    <label>Durum Açıklaması</label>
+                    <input type="text" id="edit-log-status" required>
+                </div>
+                <div class="flex" style="gap: 8px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const defaultData = {
+        settings: {
+            startTime: '08:30',
+            endTime: '17:30',
+            lateTolerance: 15,
+            earlyTolerance: 15,
+            adminUser: 'admin',
+            adminPass: 'admin123',
+            sundayHoliday: true,
+            saturdayHoliday: false
+        },
+        personnel: [
+            { id: 1, name: 'Ahmet Yılmaz', cardId: 'CARD-001', status: 'Normal', customStart: '', customEnd: '' },
+            { id: 2, name: 'Ayşe Demir', cardId: 'CARD-002', status: 'Engelli', customStart: '09:00', customEnd: '17:00' }
+        ],
+        logs: [],
+        leaves: [],
+        holidays: [{ id: 1, date: '2026-10-29', name: 'Cumhuriyet Bayramı' }]
+    };
+
+    let db = JSON.parse(localStorage.getItem('kurumsal_pdks_db')) || defaultData;
+    let isLoggedIn = false;
+    let currentTab = 'kiosk';
+    let nfcCaptureMode = false;
+
+    function saveDB() {
+        localStorage.setItem('kurumsal_pdks_db', JSON.stringify(db));
+        refreshAllUI();
+    }
+
+    // --- ANDROID NATIVE NFC KÖPRÜSÜ ---
+    // MainActivity.java kart okuduğunda doğrudan bu fonksiyonu tetikler
+    window.onNfcCardScanned = function(uid) {
+        if (!uid) return;
+        const cleanUid = String(uid).trim().toUpperCase();
+
+        // Eğer kullanıcı henüz giriş yapmadıysa uyarı ver
+        if (!isLoggedIn) {
+            playBeep('warning');
+            alert('Kart okundu (' + cleanUid + '), ancak işlem için önce yönetici girişi yapmalısınız.');
+            return;
+        }
+
+        // Eğer Personel Ekleme ekranında "NFC Tara" modu açıksa form kutusuna yaz
+        if (currentTab === 'personnel' && nfcCaptureMode) {
+            document.getElementById('p-card').value = cleanUid;
+            nfcCaptureMode = false;
+            document.getElementById('nfc-capture-hint').classList.add('hidden');
+            document.getElementById('btn-nfc-capture').innerText = '📡 Tara';
+            playBeep('success');
+            flashScreen('success');
+            return;
+        }
+
+        // Normal Kiosk giriş/çıkış işlemi yap
+        processCardScan(cleanUid);
+    };
+
+    window.updateNfcHardwareStatus = function(statusText) {
+        const badge = document.getElementById('nfc-status-badge');
+        if (badge) badge.innerText = statusText;
+    };
+
+    function toggleNfcCaptureMode() {
+        nfcCaptureMode = !nfcCaptureMode;
+        const hint = document.getElementById('nfc-capture-hint');
+        const btn = document.getElementById('btn-nfc-capture');
+        if (nfcCaptureMode) {
+            hint.classList.remove('hidden');
+            btn.innerText = '⏳ Bekleniyor...';
+        } else {
+            hint.classList.add('hidden');
+            btn.innerText = '📡 Tara';
+        }
+    }
+
+    // --- SES VE EKRAN EFEKTLERİ ---
+    function playBeep(type) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            if (type === 'success') {
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
+                gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.15);
+            } else if (type === 'warning') {
+                osc.frequency.setValueAtTime(440, ctx.currentTime);
+                gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.35);
+            } else {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            }
+        } catch (e) {}
+    }
+
+    function flashScreen(type) {
+        document.body.classList.add('flash-' + type);
+        setTimeout(() => document.body.classList.remove('flash-' + type), 600);
+    }
+
+    // --- OTURUM YÖNETİMİ ---
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const u = document.getElementById('login-user').value.trim();
+        const p = document.getElementById('login-pass').value.trim();
+        if (u === db.settings.adminUser && p === db.settings.adminPass) {
+            isLoggedIn = true;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            initApp();
+        } else {
+            document.getElementById('login-error').innerText = 'Hatalı kullanıcı adı veya parola!';
+            playBeep('error');
+        }
+    });
+
+    function logout() {
+        isLoggedIn = false;
+        document.getElementById('main-app').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('login-pass').value = '';
+    }
+
+    function switchTab(tabName, btn) {
+        currentTab = tabName;
+        nfcCaptureMode = false;
+        document.getElementById('nfc-capture-hint').classList.add('hidden');
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tab-' + tabName).classList.remove('hidden');
+        document.querySelectorAll('header .btn-ghost').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    }
+
+    function initApp() {
+        const today = getTodayStr();
+        document.getElementById('rep-start').value = today;
+        document.getElementById('rep-end').value = today;
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('live-clock').innerText = now.toLocaleDateString('tr-TR') + ' ' + now.toLocaleTimeString('tr-TR');
+        }, 1000);
+        refreshAllUI();
+    }
+
+    function getTodayStr() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function isHoliday(dateStr) {
+        const d = new Date(dateStr);
+        const day = d.getDay();
+        if (db.settings.sundayHoliday && day === 0) return 'Pazar';
+        if (db.settings.saturdayHoliday && day === 6) return 'Cumartesi';
+        const h = db.holidays.find(x => x.date === dateStr);
+        return h ? h.name : null;
+    }
+
+    function isPersonnelOnLeave(personId, dateStr) {
+        return db.leaves.find(l => l.personnelId == personId && dateStr >= l.start && dateStr <= l.end);
+    }
+
+    document.getElementById('scan-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const input = document.getElementById('scan-input');
+        const cardId = input.value.trim();
+        input.value = '';
+        processCardScan(cardId);
+    });
+
+    function processCardScan(cardId) {
+        const feedback = document.getElementById('scan-feedback');
+        const person = db.personnel.find(p => p.cardId.toLowerCase() === cardId.toLowerCase());
+
+        if (!person) {
+            feedback.className = 'mt-4 badge-danger';
+            feedback.style.display = 'block';
+            feedback.innerText = `❌ Tanımsız Kart UID: "${cardId}"! Personel sekmesinden kartı tanımlayın.`;
+            playBeep('error');
+            flashScreen('error');
+            return;
+        }
+
+        const now = new Date();
+        const dateStr = getTodayStr();
+        const timeStr = now.toTimeString().slice(0, 5);
+
+        const todayPersonLogs = db.logs.filter(l => l.personnelId === person.id && l.date === dateStr);
+        const lastLog = todayPersonLogs.length > 0 ? todayPersonLogs[0] : null;
+        const type = (lastLog && lastLog.type === 'IN') ? 'OUT' : 'IN';
+
+        let status = 'Normal';
+        let alertType = 'success';
+
+        const holidayName = isHoliday(dateStr);
+        const leaveObj = isPersonnelOnLeave(person.id, dateStr);
+
+        if (holidayName) {
+            status = `Tatil Mesaisi (${holidayName})`;
+        } else if (leaveObj) {
+            status = `İzinli Mesai (${leaveObj.type})`;
+        } else if (type === 'IN') {
+            const targetStart = person.customStart || db.settings.startTime;
+            const diff = timeToMin(timeStr) - timeToMin(targetStart);
+            if (diff > Number(db.settings.lateTolerance)) {
+                status = `Geç Kaldı (+${diff} dk)`;
+                alertType = 'warning';
+            }
+        } else {
+            const targetEnd = person.customEnd || db.settings.endTime;
+            const diff = timeToMin(targetEnd) - timeToMin(timeStr);
+            if (diff > Number(db.settings.earlyTolerance)) {
+                status = `Erken Çıktı (-${diff} dk)`;
+                alertType = 'warning';
+            }
+        }
+
+        db.logs.unshift({
+            id: Date.now(),
+            personnelId: person.id,
+            personnelName: person.name,
+            cardId: person.cardId,
+            date: dateStr,
+            time: timeStr,
+            type: type,
+            status: status
+        });
+
+        saveDB();
+        playBeep(alertType);
+        flashScreen(alertType);
+
+        feedback.className = alertType === 'success' ? 'mt-4 badge-success' : 'mt-4 badge-warning';
+        feedback.style.display = 'block';
+        feedback.innerText = `${type === 'IN' ? '🟢 GİRİŞ' : '🔴 ÇIKIŞ'}: ${person.name} (${timeStr}) — ${status}`;
+    }
+
+    function timeToMin(t) {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+    }
+
+    // --- PERSONEL CRUD ---
+    document.getElementById('personnel-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('p-id').value;
+        const obj = {
+            id: id ? Number(id) : Date.now(),
+            name: document.getElementById('p-name').value.trim(),
+            cardId: document.getElementById('p-card').value.trim().toUpperCase(),
+            status: document.getElementById('p-status').value,
+            customStart: document.getElementById('p-custom-start').value,
+            customEnd: document.getElementById('p-custom-end').value
+        };
+
+        if (id) {
+            const idx = db.personnel.findIndex(p => p.id === Number(id));
+            if (idx > -1) db.personnel[idx] = obj;
+        } else {
+            db.personnel.push(obj);
+        }
+        resetPersonnelForm();
+        saveDB();
+    });
+
+    function editPersonnel(id) {
+        const p = db.personnel.find(x => x.id === id);
+        if (!p) return;
+        document.getElementById('p-id').value = p.id;
+        document.getElementById('p-name').value = p.name;
+        document.getElementById('p-card').value = p.cardId;
+        document.getElementById('p-status').value = p.status;
+        document.getElementById('p-custom-start').value = p.customStart;
+        document.getElementById('p-custom-end').value = p.customEnd;
+        document.getElementById('personnel-form-title').innerText = '✏️ Personel Güncelle';
+        document.getElementById('p-cancel-btn').classList.remove('hidden');
+    }
+
+    function deletePersonnel(id) {
+        if (confirm('Bu personeli silmek istediğinize emin misiniz?')) {
+            db.personnel = db.personnel.filter(p => p.id !== id);
+            saveDB();
+        }
+    }
+
+    function resetPersonnelForm() {
+        document.getElementById('personnel-form').reset();
+        document.getElementById('p-id').value = '';
+        document.getElementById('personnel-form-title').innerText = '➕ Yeni Personel & NFC Kart Tanımla';
+        document.getElementById('p-cancel-btn').classList.add('hidden');
+    }
+
+    // --- İZİN & TATİL ---
+    document.getElementById('leave-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const pid = Number(document.getElementById('leave-personnel').value);
+        const person = db.personnel.find(p => p.id === pid);
+        if (!person) return;
+
+        db.leaves.unshift({
+            id: Date.now(),
+            personnelId: pid,
+            personnelName: person.name,
+            start: document.getElementById('leave-start').value,
+            end: document.getElementById('leave-end').value,
+            type: document.getElementById('leave-type').value
+        });
+        this.reset();
+        saveDB();
+    });
+
+    function deleteLeave(id) {
+        db.leaves = db.leaves.filter(l => l.id !== id);
+        saveDB();
+    }
+
+    document.getElementById('holiday-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        db.holidays.push({
+            id: Date.now(),
+            date: document.getElementById('holiday-date').value,
+            name: document.getElementById('holiday-name').value.trim()
+        });
+        this.reset();
+        saveDB();
+    });
+
+    function deleteHoliday(id) {
+        db.holidays = db.holidays.filter(h => h.id !== id);
+        saveDB();
+    }
+
+    // --- DÜZELTME & RAPOR ---
+    function openEditLogModal(id) {
+        const log = db.logs.find(l => l.id === id);
+        if (!log) return;
+        document.getElementById('edit-log-id').value = log.id;
+        document.getElementById('edit-log-person').value = log.personnelName;
+        document.getElementById('edit-log-type').value = log.type;
+        document.getElementById('edit-log-time').value = log.time;
+        document.getElementById('edit-log-status').value = log.status;
+        document.getElementById('edit-log-modal').classList.remove('hidden');
+    }
+
+    function addManualExit(logId) {
+        const entryLog = db.logs.find(l => l.id === logId);
+        if (!entryLog) return;
+        db.logs.unshift({
+            id: Date.now(),
+            personnelId: entryLog.personnelId,
+            personnelName: entryLog.personnelName,
+            cardId: entryLog.cardId,
+            date: entryLog.date,
+            time: db.settings.endTime,
+            type: 'OUT',
+            status: 'Manuel Çıkış Eklendi'
+        });
+        saveDB();
+    }
+
+    document.getElementById('edit-log-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = Number(document.getElementById('edit-log-id').value);
+        const log = db.logs.find(l => l.id === id);
+        if (log) {
+            log.type = document.getElementById('edit-log-type').value;
+            log.time = document.getElementById('edit-log-time').value;
+            log.status = document.getElementById('edit-log-status').value;
+            saveDB();
+        }
+        closeModal();
+    });
+
+    function closeModal() {
+        document.getElementById('edit-log-modal').classList.add('hidden');
+    }
+
+    document.getElementById('settings-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        db.settings.startTime = document.getElementById('set-start').value;
+        db.settings.endTime = document.getElementById('set-end').value;
+        db.settings.lateTolerance = Number(document.getElementById('set-late-tol').value);
+        db.settings.earlyTolerance = Number(document.getElementById('set-early-tol').value);
+        db.settings.adminUser = document.getElementById('set-admin-user').value.trim();
+        db.settings.adminPass = document.getElementById('set-admin-pass').value.trim();
+        saveDB();
+        alert('✅ Ayarlar güncellendi!');
+    });
+
+    function saveSettings() {
+        db.settings.sundayHoliday = document.getElementById('rule-sunday').checked;
+        db.settings.saturdayHoliday = document.getElementById('rule-saturday').checked;
+        saveDB();
+    }
+
+    function exportJSON() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = `PDKS_Yedek_${getTodayStr()}.json`;
+        a.click();
+    }
+
+    function importJSON() {
+        const file = document.getElementById('import-json-file').files[0];
+        if (!file) return alert('Lütfen bir .json dosyası seçin.');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const parsed = JSON.parse(e.target.result);
+                if (parsed.settings && parsed.personnel) {
+                    db = parsed;
+                    saveDB();
+                    alert('✅ Yedek geri yüklendi!');
+                } else {
+                    alert('❌ Geçersiz dosya.');
+                }
+            } catch (err) {
+                alert('❌ Okuma hatası.');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function exportToCSV() {
+        const start = document.getElementById('rep-start').value;
+        const end = document.getElementById('rep-end').value;
+        const pid = document.getElementById('rep-person').value;
+        const filtered = db.logs.filter(l => l.date >= start && l.date <= end && (pid === 'ALL' || l.personnelId == pid));
+        if (filtered.length === 0) return alert('Kayıt bulunamadı.');
+
+        let csv = "\uFEFFTarih;Personel;Kart UID;İşlem;Saat;Durum\n";
+        filtered.forEach(r => {
+            csv += `${r.date};${r.personnelName};${r.cardId};${r.type === 'IN' ? 'Giriş' : 'Çıkış'};${r.time};${r.status}\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `PDKS_Rapor_${start}_${end}.csv`;
+        link.click();
+    }
+
+    function refreshAllUI() {
+        const today = getTodayStr();
+        const holiday = isHoliday(today);
+        document.getElementById('today-holiday-badge').innerHTML = holiday ? `<span class="badge badge-info">📅 Tatil: ${holiday}</span>` : '';
+
+        let insidePeople = [];
+        let leaveCount = 0;
+        let arrivedIds = new Set();
+
+        db.personnel.forEach(p => {
+            if (isPersonnelOnLeave(p.id, today)) leaveCount++;
+            const pLogs = db.logs.filter(l => l.personnelId === p.id && l.date === today);
+            if (pLogs.length > 0) {
+                arrivedIds.add(p.id);
+                if (pLogs[0].type === 'IN') insidePeople.push(p);
+            }
+        });
+
+        const absentCount = holiday ? 0 : Math.max(0, db.personnel.length - arrivedIds.size - leaveCount);
+        document.getElementById('stat-total').innerText = db.personnel.length;
+        document.getElementById('stat-inside').innerText = insidePeople.length;
+        document.getElementById('stat-leave').innerText = leaveCount;
+        document.getElementById('stat-absent').innerText = absentCount;
+
+        document.getElementById('inside-list').innerHTML = insidePeople.length > 0
+            ? insidePeople.map(p => `<span class="badge badge-success">🟢 ${p.name}</span>`).join('')
+            : '<span style="font-size:12px; color:var(--text-muted);">Şu an içeride kimse yok.</span>';
+
+        document.getElementById('quick-cards').innerHTML = db.personnel.map(p =>
+            `<button type="button" class="btn btn-ghost btn-sm" onclick="processCardScan('${p.cardId}')">${p.name} (${p.cardId})</button>`
+        ).join('');
+
+        const todayLogs = db.logs.filter(l => l.date === today);
+        document.getElementById('today-logs-body').innerHTML = todayLogs.map(l => `
+            <tr>
+                <td><strong>${l.personnelName}</strong></td>
+                <td>${l.type === 'IN' ? '🟢 Giriş' : '🔴 Çıkış'}</td>
+                <td class="mono">${l.time}</td>
+                <td><span class="badge ${l.status === 'Normal' ? 'badge-success' : 'badge-warning'}">${l.status}</span></td>
+            </tr>
+        `).join('') || '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Bugün henüz kayıt yok.</td></tr>';
+
+        document.getElementById('personnel-table-body').innerHTML = db.personnel.map(p => `
+            <tr>
+                <td><strong>${p.name}</strong></td>
+                <td class="mono">${p.cardId}</td>
+                <td><span class="badge ${p.status === 'Normal' ? 'badge-info' : 'badge-warning'}">${p.status}</span></td>
+                <td>${p.customStart || db.settings.startTime} - ${p.customEnd || db.settings.endTime}</td>
+                <td>
+                    <button class="btn btn-ghost btn-sm" onclick="editPersonnel(${p.id})">Düzenle</button>
+                    <button class="btn btn-danger btn-sm" onclick="deletePersonnel(${p.id})">Sil</button>
+                </td>
+            </tr>
+        `).join('');
+
+        const personOptions = db.personnel.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        document.getElementById('leave-personnel').innerHTML = personOptions;
+        document.getElementById('rep-person').innerHTML = '<option value="ALL">Tüm Personeller</option>' + personOptions;
+
+        document.getElementById('leaves-table-body').innerHTML = db.leaves.map(l => `
+            <tr>
+                <td>${l.personnelName}</td>
+                <td class="mono">${l.start} / ${l.end}</td>
+                <td><span class="badge badge-warning">${l.type}</span></td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteLeave(${l.id})">Sil</button></td>
+            </tr>
+        `).join('');
+
+        document.getElementById('holidays-table-body').innerHTML = db.holidays.map(h => `
+            <tr>
+                <td class="mono">${h.date}</td>
+                <td>${h.name}</td>
+                <td><button class="btn btn-danger btn-sm" onclick="deleteHoliday(${h.id})">Sil</button></td>
+            </tr>
+        `).join('');
+
+        document.getElementById('set-start').value = db.settings.startTime;
+        document.getElementById('set-end').value = db.settings.endTime;
+        document.getElementById('set-late-tol').value = db.settings.lateTolerance;
+        document.getElementById('set-early-tol').value = db.settings.earlyTolerance;
+        document.getElementById('set-admin-user').value = db.settings.adminUser;
+        document.getElementById('set-admin-pass').value = db.settings.adminPass;
+        document.getElementById('rule-sunday').checked = db.settings.sundayHoliday;
+        document.getElementById('rule-saturday').checked = db.settings.saturdayHoliday;
+
+        renderReports();
+    }
+
+    function renderReports() {
+        const start = document.getElementById('rep-start').value;
+        const end = document.getElementById('rep-end').value;
+        const pid = document.getElementById('rep-person').value;
+        const filtered = db.logs.filter(l => l.date >= start && l.date <= end && (pid === 'ALL' || l.personnelId == pid));
+
+        document.getElementById('reports-table-body').innerHTML = filtered.map(r => {
+            const hasExit = db.logs.some(x => x.personnelId === r.personnelId && x.date === r.date && x.type === 'OUT');
+            const missingExitBtn = (r.type === 'IN' && !hasExit)
+                ? `<button class="btn btn-warning btn-sm" onclick="addManualExit(${r.id})">+ Çıkış Ekle</button>`
+                : '';
+            return `
+                <tr>
+                    <td class="mono">${r.date}</td>
+                    <td><strong>${r.personnelName}</strong></td>
+                    <td>${r.type === 'IN' ? '🟢 Giriş' : '🔴 Çıkış'}</td>
+                    <td class="mono">${r.time}</td>
+                    <td><span class="badge ${r.status === 'Normal' ? 'badge-success' : 'badge-warning'}">${r.status}</span></td>
+                    <td>
+                        <button class="btn btn-ghost btn-sm" onclick="openEditLogModal(${r.id})">Düzenle</button>
+                        ${missingExitBtn}
+                    </td>
+                </tr>
+            `;
+        }).join('') || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Kayıt bulunamadı.</td></tr>';
+    }
+</script>
+</body>
+</html>
